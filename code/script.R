@@ -26,3 +26,32 @@ classCount <- table(trainData$Pclass)
 classVisualization <- barplot(classCount, xlab = "Class", main = "Number of passengers by their class")
 text(x = classVisualization, y = classCount - 25, label = classCount)
 dev.off()
+par(mfrow=c(1,1))
+
+## Data visualization comparing survival depending on different passenger characteristics
+jpeg(filename = "./figures/passengerSurvivalComparison.jpg", width = 1200, height = 1200, units = "px",
+     quality = 100)
+par(mfrow = c(3,1))
+# Survival by age
+ageSurvivalCounts <- table(trainData$Survived, trainData$Age)
+rownames(ageSurvivalCounts) <- c("Died", "Survived")
+barplot(ageSurvivalCounts, xlab = "Age", ylab = "Number of people", 
+        main = "Survival by age", legend.text=TRUE)
+#Survival by sex
+sexSurvivalCounts <- table(trainData$Survived, trainData$Sex)
+rownames(sexSurvivalCounts) <- c("Died", "Survived")
+sexSurvivalPlot <- barplot(sexSurvivalCounts, xlab = "Sex", ylab = "Number of people", 
+        main = "Survival by sex", legend.text=TRUE, cex.axis = 1.5)
+sexSurvivalLabels = sexSurvivalCounts["Died",] / colSums(sexSurvivalCounts)
+sexSurvivalLabels = paste(sexSurvivalLabels * 100, "% (Died)")
+text(x = sexSurvivalPlot, y = 45, label = sexSurvivalLabels, cex = 1.5)
+#Survival by class
+classSurvivalCounts <- table(trainData$Survived, trainData$Pclass)
+rownames(classSurvivalCounts) <- c("Died", "Survived")
+classSurvivalPlot <- barplot(classSurvivalCounts, xlab = "Class", ylab = "Number of people", 
+        main = "Survival by class", legend.text=TRUE)
+classSurvivalLabels = classSurvivalCounts["Died",] / colSums(classSurvivalCounts)
+classSurvivalLabels = paste(classSurvivalLabels * 100, "% (Died)")
+text(x = classSurvivalPlot, y = 45, label = classSurvivalLabels, cex = 1.5)
+dev.off()
+par(mfrow=c(1,1))
