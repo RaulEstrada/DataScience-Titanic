@@ -86,3 +86,27 @@ ggplot(fullData[!is.na(fullData$Survived),], aes(x = Deck, fill = factor(Survive
     geom_bar(stat = "count", position = "dodge") +
     labs(x = "Deck")
 dev.off()
+
+
+## MISSING VALUES
+# 2 missing embarkment
+jpeg(filename = "./figures/embarkmentFareNAs.jpg", quality = 100)
+embark_fare <- fullData[fullData$PassengerId != 62 & fullData$PassengerId != 830,]
+ggplot(embark_fare, aes(x = Embarked, y = Fare, fill = factor(Pclass))) +
+    geom_boxplot() +
+    geom_hline(aes(yintercept = 80), colour = 'red', linetype = 'dashed', lwd = 2)
+dev.off()
+# Median fare for First class with Embarkment C is 80, so we assign this value to NAs
+fullData$Embarked[is.na(fullData$Embarked)] <- 'C'
+
+# A passenger is missing the Fare attribute. We'll see similar passengers
+similar <- fullData[fullData$Pclass == '3' & fullData$Embarked == 'S',]
+jpeg(filename = "./figures/ClassFareNAs.jpg", quality = 100)
+ggplot(similar, aes(x = Fare)) + 
+    geom_density(fill = '#99d6ff', alpha = .4) + 
+    geom_vline(aes(xintercept = median(Fare, na.rm = TRUE)),
+               colour = 'red', linetype = 'dashed', lwd = 1)
+dev.off()
+# We assign the median to the Fare NA
+
+fullData$Fare[is.na(fullData$Fare)] <- median(similar$Fare, na.rm = TRUE)
