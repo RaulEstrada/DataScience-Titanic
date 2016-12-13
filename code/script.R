@@ -55,3 +55,34 @@ classSurvivalLabels = paste(classSurvivalLabels * 100, "% (Died)")
 text(x = classSurvivalPlot, y = 45, label = classSurvivalLabels, cex = 1.5)
 dev.off()
 par(mfrow=c(1,1))
+
+## Feature Engineering
+testData <- cbind(testData, Survived = rep(NA, nrow(testData)))
+fullData <- rbind(trainData, testData)
+fullData$Surname <- sapply(fullData$Name, function(x) strsplit(x, split = "[.,]")[[1]][1])
+fullData$FSize <- fullData$SibSp + fullData$Parch + 1
+
+# Visualize if familis survive or die together
+library(ggplot2)
+jpeg(filename = "./figures/survivalByFamilySize.jpg", quality = 100)
+ggplot(fullData[!is.na(fullData$Survived),], aes(x = FSize, fill = factor(Survived))) + 
+    geom_bar(stat = "count", position = "dodge") + 
+    scale_x_continuous(breaks = c(1:11)) + 
+    labs(x = "Family Size")
+dev.off()
+jpeg(filename = "./figures/mosaicSurvivalFamilyClass.jpg", quality = 100)
+fullData$FamilyClass[fullData$FSize == 1] <- "Singleton"
+fullData$FamilyClass[fullData$FSize < 5 & fullData$FSize > 1] <- "Small"
+fullData$FamilyClass[fullData$FSize >= 5] <- "Large"
+# Visualize survival by family class
+mosaicplot(table(fullData$FamilyClass, fullData$Survived), main = "Family size by Survival",
+           shade = TRUE)
+dev.off()
+
+## Obtain the Deck of each passenger
+fullData$Deck <- sapply(fullData$Cabin, function(x) strsplit(x, NULL)[[1]][1])
+jpeg(filename = "./figures/survivalByDeck.jpg", quality = 100)
+ggplot(fullData[!is.na(fullData$Survived),], aes(x = Deck, fill = factor(Survived))) +
+    geom_bar(stat = "count", position = "dodge") +
+    labs(x = "Deck")
+dev.off()
