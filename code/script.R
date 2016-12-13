@@ -113,8 +113,8 @@ fullData$Fare[is.na(fullData$Fare)] <- median(similar$Fare, na.rm = TRUE)
 
 ## Imputation using prediction
 # Make factor variables into factors
-factor_vars <- c('PassengerId', 'Pclass', 'Sex', 'Embarked', 'Title', 'Surname',
-                 'Family', 'FSize')
+factor_vars <- c('PassengerId', 'Pclass', 'Sex', 'Embarked', 'Surname',
+                 'FamilyClass', 'FSize')
 fullData[factor_vars] <- lapply(fullData[factor_vars], function(x) as.factor(x))
 set.seed(1234)
 library(mice)
@@ -129,6 +129,56 @@ par(mfrow = c(1, 2))
 hist(fullData$Age, freq = F, main = "Age: Original Data", col = "darkgreen", ylim = c(0, .04))
 hist(mice_output$Age, freq = F, main = "Age: MICE output", col = "lightgreen", ylim = c(0, .04))
 dev.off()
+par(mfrow = c(1, 1))
 
 # Replace missing values with predicted ones
 fullData$Age <- mice_output$Age
+
+
+## FEATURE ENGINEERING 2
+# Visualize Survival by age again
+jpeg(filename = "./figures/survivalByAge.jpg", quality = 100)
+ggplot(fullData[!is.na(fullData$Survived),], aes(Age, fill = factor(Survived))) + 
+    geom_histogram() + 
+    facet_grid(.~Sex)
+dev.off()
+
+
+## PREDICTION USING RANDOM FOREST
+fullData$SexNum <- as.numeric(levels(fullData$Sex))[fullData$Sex]
+fullData$EmbarkedNum <- as.numeric(levels(fullData$Embarked))[fullData$Embarked]
+trainingData <- fullData[!is.na(fullData$Survived),]
+testData <- fullData[is.na(fullData$Survived),]
+library(randomForest)
+rf_model <- randomForest(factor(Survived) ~ Pclass + Sex + Age + SibSp + Parch 
+                         + Fare + Embarked + FSize, data = trainingData)
+# Show model error
+jpeg(filename = "./figures/randomForestModelError.jpg", quality = 100)
+plot(rf_model, ylim = c(0, .36))
+legend('topright', colnames(rf_model$err.rate), col = 1:3, fill = 1:3)
+dev.off()
+
+## Calculate feature importance
+library(magrittr)
+library(plyr)
+library(dplyr)
+importance <- importance(rf_model)
+varImportance <- data.frame(Variables = row.names(importance), 
+                            Importance = round(importance[,'MeanDecreaseGini'], 2))
+# Create a rank variable based on importance
+rankImportance <- varImportance %>% 
+    mutate(Rank = paste0('#', dense_rank(desc(Importance))))
+# Visualize
+jpeg(filename = "./figures/variableImportance.jpg", quality = 100)
+ggplot(rankImportance, aes(x = reorder(Variables, Importance),
+                           y = Importance, fill = Importance)) + 
+    geom_bar(stat = 'identity') + 
+    geom_text(aes(x = Variables, y = .5, label = Rank),
+              hjust = 0, vjust = .55, size = 4, colour = 'red') + 
+    labs(x = 'Variables') + 
+    coord_flip()
+dev.off()
+
+# Predict on test data
+prediction <- predict(rf_model, testData)
+solution <- data.frame(PassengerID = testData$PassengerId, Survived = prediction)
