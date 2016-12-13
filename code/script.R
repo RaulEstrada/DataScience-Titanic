@@ -110,3 +110,25 @@ dev.off()
 # We assign the median to the Fare NA
 
 fullData$Fare[is.na(fullData$Fare)] <- median(similar$Fare, na.rm = TRUE)
+
+## Imputation using prediction
+# Make factor variables into factors
+factor_vars <- c('PassengerId', 'Pclass', 'Sex', 'Embarked', 'Title', 'Surname',
+                 'Family', 'FSize')
+fullData[factor_vars] <- lapply(fullData[factor_vars], function(x) as.factor(x))
+set.seed(1234)
+library(mice)
+# Perform mice imputation with useful variables
+mice_mod <- mice(fullData[, !names(fullData) %in% c('PassengerId', 'Name', 'Ticket', 
+                                                    'Cabin', 'Family', 'Survived')], 
+                 method = 'rf')
+mice_output <- complete(mice_mod)
+#Visualize original distribution of passengers age with predicted one
+jpeg(filename = "./figures/compareAgeDistribution.jpg", quality = 100)
+par(mfrow = c(1, 2))
+hist(fullData$Age, freq = F, main = "Age: Original Data", col = "darkgreen", ylim = c(0, .04))
+hist(mice_output$Age, freq = F, main = "Age: MICE output", col = "lightgreen", ylim = c(0, .04))
+dev.off()
+
+# Replace missing values with predicted ones
+fullData$Age <- mice_output$Age
